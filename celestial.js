@@ -79,7 +79,10 @@ Celestial.display = function(config) {
   var context = canvas.node().getContext("2d");
   context.setTransform(pixelRatio,0,0,pixelRatio,0,0);
 
-  var graticule = d3.geo.graticule().majorStep([15,360]).minorStep([15,10]);
+  var graticule = d3.geo.graticule()
+      .majorStep([cfg.lines.graticule.major.latitudeLine, cfg.lines.graticule.major.longitudeLine])
+      .minorStep([cfg.lines.graticule.minor.latitudeLine, cfg.lines.graticule.minor.longitudeLine])
+      .majorExtent(cfg.lines.graticule.majorExtend);
 
   map = d3.geo.path().projection(mapProjection).context(context);
 
@@ -122,11 +125,14 @@ Celestial.display = function(config) {
   function load() {
     //Background
     setClip(projectionSetting.clip);
-    container.append("path").datum(graticule.outline).attr("class", "outline");
+    // container.append("path").datum(graticule.outline).attr("class", "outline");
     container.append("path").datum(circle).attr("class", "horizon");
     container.append("path").datum(daylight).attr("class", "daylight");
     //Celestial planes
-    if (cfg.transform === "equatorial") graticule.majorStep([15,360]).minorStep([15,10]);
+    if (cfg.transform === "equatorial") graticule
+        .majorStep([cfg.lines.graticule.major.latitudeLine, cfg.lines.graticule.major.longitudeLine])
+        .minorStep([cfg.lines.graticule.minor.latitudeLine, cfg.lines.graticule.minor.longitudeLine])
+        .majorExtent(cfg.lines.graticule.majorExtend);
     else  graticule.minorStep([10,10]);
     for (var key in cfg.lines) {
       if (!has(cfg.lines, key)) continue;
@@ -573,6 +579,11 @@ Celestial.display = function(config) {
           context.arc(pt[0], pt[1], r, 0, 2 * Math.PI);
           context.closePath();
           context.fill();
+          if (cfg.stars.style.stroke) {
+            context.strokeWidth = cfg.stars.style.strokeWidth;
+            context.strokeStyle = cfg.stars.style.strokeColor;
+            context.stroke();
+          }
           if (cfg.stars.designation && d.properties.mag <= cfg.stars.designationLimit*adapt) {
             setTextStyle(cfg.stars.designationStyle);
             context.fillText(starDesignation(d.id), pt[0]+r, pt[1]);
@@ -4835,8 +4846,9 @@ Celestial.exportSVG = function(fname) {
       foreground = svg.append('g');
 */
   var graticule = d3.geo.graticule()
-      .majorStep([15, 360])
-      .minorStep([15,10]);
+      .majorStep([cfg.lines.graticule.major.latitudeLine, cfg.lines.graticule.major.longitudeLine])
+      .minorStep([cfg.lines.graticule.minor.latitudeLine, cfg.lines.graticule.minor.longitudeLine])
+      .majorExtent(cfg.lines.graticule.majorExtend);
 
   var map = d3.geo.path().projection(projection);
 
@@ -5013,7 +5025,9 @@ Celestial.exportSVG = function(fname) {
             .attr("cx", function(d) { return projection(d.geometry.coordinates)[0]; })
             .attr("cy", function(d) { return projection(d.geometry.coordinates)[1]; })
             .attr("r", function(d) { return starMagRadial(d.properties.mag); })
-            .style("fill", cfg.stars.style.fill );
+            .style("fill", cfg.stars.style.svgFill )
+            .style('stroke-width', cfg.stars.style.stroke ? cfg.stars.style.svgWidth : 0)
+            .style('stroke', cfg.stars.style.stroke ? cfg.stars.style.strokeColor : 'transparent');
             // .attr("d", map.pointRadius( function(d) {
             //   return d.properties ? starSize(d.properties.mag) : 1;
             // }));
