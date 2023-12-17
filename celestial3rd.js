@@ -6006,7 +6006,7 @@ var datetimepicker = function(cfg, callback) {
   function daySel() {
     var mo = $("mon").value, yr = $("yr").value,
         curdt = new Date(yr, mo, 1),
-        cal = d3.select("#cal"),
+        cal = d3.select("#" + Celestial3rd.iId + "cal"),
         today = new Date();
     yr = parseInt(yr);   
     mo = parseInt(mo);   
