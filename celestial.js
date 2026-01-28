@@ -1,20 +1,23 @@
 // Copyright 2015-2020 Olaf Frohn https://github.com/ofrohn, see LICENSE
 !(function() {
-var Celestial = {
-  version: '0.7.26',
-  container: null,
-  data: []
-};
 
-var ANIMDISTANCE = 0.035,  // Rotation animation threshold, ~2deg in radians
-    ANIMSCALE = 1.4,       // Zoom animation threshold, scale factor
-    ANIMINTERVAL_R = 2000, // Rotation duration scale in ms
-    ANIMINTERVAL_P = 2500, // Projection duration in ms
-    ANIMINTERVAL_Z = 1500, // Zoom duration scale in ms
-    zoomextent = 10,       // Default maximum extent of zoom (max/min)
-    zoomlevel = 1;         // Default zoom level, 1 = 100%
+// Factory function to create independent Celestial instances
+function createCelestial() {
+  var Celestial = {
+    version: '0.7.26',
+    container: null,
+    data: []
+  };
 
-var cfg, mapProjection, zoom, map, circle, daylight, starnames = {}, dsonames = {};
+  var ANIMDISTANCE = 0.035,  // Rotation animation threshold, ~2deg in radians
+      ANIMSCALE = 1.4,       // Zoom animation threshold, scale factor
+      ANIMINTERVAL_R = 2000, // Rotation duration scale in ms
+      ANIMINTERVAL_P = 2500, // Projection duration in ms
+      ANIMINTERVAL_Z = 1500, // Zoom duration scale in ms
+      zoomextent = 10,       // Default maximum extent of zoom (max/min)
+      zoomlevel = 1;         // Default zoom level, 1 = 100%
+
+  var cfg, mapProjection, zoom, map, circle, daylight, starnames = {}, dsonames = {};
 
 // Show it all, with the given config, otherwise with default settings
 Celestial.display = function(config) {
@@ -621,12 +624,10 @@ Celestial.display = function(config) {
             setTextStyle(cfg.planets.symbolStyle);
             context.fillStyle = sym.fill;
             context.fillText(sym.letter, pt[0], pt[1]);
-          } else if (id === "lun") {
+          } else if (id === "lun" && !sym.showAsPlanet) {
             if (has(sym, "size") && isNumber(sym.size)) r = sym.size * adapt;
-            if (sym.enabled) {
-              context.fillStyle = sym.fill;
-              Canvas.symbol().type("crescent").size(r*r).age(p.ephemeris.age).position(pt)(context, sym);
-            }
+            context.fillStyle = sym.fill;
+            Canvas.symbol().type("crescent").size(r*r).age(p.ephemeris.age).position(pt)(context);
           } else if (cfg.planets.symbolType === "disk") {
             r = has(sym, "size") && isNumber(sym.size) ? sym.size * adapt : planetSize(p.ephemeris);
             context.fillStyle = sym.fill;
@@ -639,7 +640,7 @@ Celestial.display = function(config) {
             context.fillText(sym[cfg.planets.symbolType], pt[0], pt[1]);
           }
           //name
-          if (cfg.planets.names && (p.desig !== 'Lun' || (p.desig === 'Lun' && sym.enabled))) {
+          if (cfg.planets.names) {
             var name = p[cfg.planets.namesType];
             setTextStyle(cfg.planets.nameStyle);
             //context.direction = "ltr" || "rtl" ar il ir
@@ -1192,12 +1193,19 @@ Celestial.display = function(config) {
   load();
 };
 
+  return Celestial;
+}
+
+// Create default global instance for backward compatibility
+var Celestial = createCelestial();
+
 //Export entire object if invoked by require
 if (typeof module === "object" && module.exports) {
   var d3js = require('./lib/d3.js'),
       d3_geo_projection = require('./lib/d3.geo.projection.js');
   module.exports = {
-    Celestial: function() { return Celestial; },
+    Celestial: function() { return createCelestial(); },
+    createCelestial: function() { return createCelestial; },
     d3: function() { return d3js; },
     "d3.geo.projection": function() { return d3_geo_projection; }
   };
@@ -2207,8 +2215,8 @@ Canvas.symbol = function () {
       padding = d3.functor([2,2]),
       pos;
 
-  function canvas_symbol(context, sym) {
-    draw_symbol[type()](context, sym);
+  function canvas_symbol(context) {
+    draw_symbol[type()](context);
   }
 
   var draw_symbol = {
@@ -2297,7 +2305,7 @@ Canvas.symbol = function () {
       ctx.closePath();
       return r;
     },
-    "crescent": function(ctx, sym) {
+    "crescent": function(ctx) {
       var s = Math.sqrt(size()),
           r = s/2,
           ag = age(),
@@ -2306,7 +2314,7 @@ Canvas.symbol = function () {
           dir = ag > Math.PI,
           termdir = Math.abs(ph) > 0.5 ? dir : !dir,
           moonFill = ctx.fillStyle,
-          darkFill = sym.background;
+          darkFill = ph < 0.157 ? "#669" : "#557";
       ctx.save();
       ctx.fillStyle = darkFill;
       ctx.beginPath();
@@ -5163,8 +5171,22 @@ Celestial.exportSVG = function(fname) {
          .attr({dy: ".35em"});
       }
       // Special case for Moon crescent
-      if (jlun.features.length > 0 && cfg.planets.symbols.lun.enabled) {
-        if (cfg.planets.symbolType === "letter") {
+      if (jlun.features.length > 0) {
+        if (cfg.planets.symbolType === "disk") {
+          groups.planets.selectAll(".moon")
+              .data(jlun.features)
+              .enter().append("path")
+              .attr("transform", function (d) {
+                return point(d.geometry.coordinates);
+              })
+              .attr("d", function (d) {
+                var r = (has(cfg.planets.symbols[d.id], "size")) ? (cfg.planets.symbols[d.id].size - 1) * adapt : null;
+                return planetSymbol(d.properties, r);
+              })
+              .attr("class", function (d) {
+                return "planets " + d.id;
+              });
+        } else if (cfg.planets.symbolType === "letter") {
           groups.planets.selectAll(".moon")
            .data(jlun.features)
            .enter().append("text")
@@ -5316,8 +5338,7 @@ Celestial.exportSVG = function(fname) {
           styles['planetNames' + d.id] = svgTextStyle(cfg.planets.nameStyle, cfg.planets.symbols[d.id].text);
         });
 
-
-        if (jlun.features.length > 0 && cfg.planets.symbols.lun.enabled) {
+        if (jlun.features.length > 0) {
           var moons = groups.planetNames.selectAll(".moonname");
           moons.data(jlun.features)
            .enter().append("text")
@@ -6585,4 +6606,5 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 this.Celestial = Celestial;
+this.createCelestial = createCelestial;
 })();

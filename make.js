@@ -7,7 +7,7 @@ var shell = require('shelljs/make'),
     version = require('./package.json').version,
     copy = "// Copyright 2015-2020 Olaf Frohn https://github.com/ofrohn, see LICENSE\n",
     begin = "!(function() {",
-    end = "this.Celestial = Celestial;\n})();",
+    end = "this.Celestial = Celestial;\nthis.createCelestial = createCelestial;\n})();",
     filename = './celestial',
     filelist = [
     './src/celestial.js', 
