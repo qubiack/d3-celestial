@@ -17,6 +17,8 @@
   },
   "scripts": {
     "build": "node make.js",
+    "build:variants": "node generate-variants.js",
+    "test:variants": "node test/variants-test.js",
     "test": "node test/celestial-test.js",
     "jshint": "jshint src/**.js"
   },

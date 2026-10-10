@@ -2,7 +2,7 @@ var UglifyJS = require('uglify-js');
 var fs = require('fs');
 var path = require('path');
 
-var files = ['celestial.js', 'celestial2nd.js', 'celestial3rd.js'];
+var files = ['celestial.js', 'celestial2nd.js', 'celestial3rd.js', 'celestial4th.js', 'celestial5th.js'];
 
 files.forEach(function(file) {
     var filePath = path.join(__dirname, file);

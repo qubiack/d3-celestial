@@ -1,5 +1,51 @@
 # Celestial map with D3.js
 
+## Dodatkowe instancje dla plakatów
+
+Warianty `celestial2nd.js` i `celestial3rd.js` dodano w commicie `ef2cb26`.
+Każdy ma własny obiekt globalny (`Celestial2nd`, `Celestial3rd`), stan wewnątrz
+osobnego IIFE oraz prefiks ID elementów DOM (`cel2nd_`, historycznie `cel3nd_`).
+Prefiksy obejmują formularze, kalendarz, kontener eksportu SVG i gradient nieba.
+Poprawki `6fd2ac1` (selektory eksportu), `7bd3af7` (odczyt ID), `fb83c27`
+(inicjalizacja) i `bc8cab9` (kalendarz bez pierwszej instancji) są już zawarte
+w aktualnych plikach. Po zamianie nazw i prefiksów `2nd` i `3rd` różnią się
+wyłącznie formatowaniem. `make.js` buduje tylko podstawowy `celestial.js`;
+`minify.js` minifikuje gotowe warianty.
+
+`celestial4th.js` i `celestial5th.js` oraz ich wersje `.min.js` generuje polecenie:
+
+```sh
+npm run build:variants
+npm run test:variants
+```
+
+Źródłem jest aktualny `celestial3rd.js`, co zachowuje zmiany aplikacyjne
+(w tym konfigurację siatki i stylów gwiazd). Generator dodatkowo izoluje
+pozostawione wspólne ID, etykiety i selektory oraz zdarzenia kalendarza,
+a przy wyborze dnia usuwa prefiks przed parsowaniem daty. Starsze warianty
+pozostają bez zmian. `npm run build` nie odtwarza dodatkowych wariantów.
+
+Nowe obiekty to `Celestial4th` i `Celestial5th`, z prefiksami `cel4th_` i `cel5th_`.
+Po załadowaniu D3 i biblioteki projekcji można użyć ich tak:
+
+```html
+<div id="poster-map-4"></div>
+<div id="poster-map-5"></div>
+<script src="celestial4th.min.js"></script>
+<script src="celestial5th.min.js"></script>
+<script>
+  Celestial4th.display(Object.assign({}, posterConfig4, {container: "poster-map-4"}));
+  Celestial5th.display(Object.assign({}, posterConfig5, {container: "poster-map-5"}));
+</script>
+```
+
+Przekaż konfiguracje plakatów takie jak dla `3rd`, z osobnymi kontenerami.
+Testy sprawdzają inicjalizację samodzielną i wspólne ładowanie pięciu bibliotek,
+niezależność stanu, unikalność ID nowych instancji i wybór daty w kalendarzu,
+zarówno dla źródeł, jak i plików minifikowanych. Canvas i żądania danych są
+w testach zastąpione atrapami; pełny wygląd plakatu i eksport SVG wymagają
+weryfikacji w aplikacji korzystającej z biblioteki.
+
 Interactive, adaptable celestial map done with the [D3.js](http://d3js.org/) visualization library. So, GeoJSON for sky stuff. Which surprisingly nobody has done yet, it seems.  
 
 Features display of stars and deep sky objects (DSOs) with a selectable magnitude limit up to 6, or choose different GeoJSON data source for higher magnitudes. Also shows constellations with names, lines and/or boundaries, the Milky Way band and grid lines. Alternate coordinate spaces e.g. ecliptc, galactic or supergalactic are also possible. Full support for zoom and rotation with mouse or gestures.
